@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNPedia Scraper Dashboard</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+        }
+        .container { 
+            width: 90%;
+            max-width: 900px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        h1 { 
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-align: center;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        .subtitle {
+            text-align: center;
+            color: #eee;
+            margin-bottom: 40px;
+            font-size: 18px;
+        }
+        .stats { 
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .stat-box { 
+            background: rgba(0, 0, 0, 0.2);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .stat-box:hover { transform: translateY(-5px); }
+        .stat-value { font-size: 42px; font-weight: bold; margin-bottom: 5px; }
+        .stat-label { color: #ccc; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+        .progress-container { margin-bottom: 40px; }
+        .progress-bar { 
+            width: 100%;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .progress-fill { 
+            height: 100%;
+            background: linear-gradient(90deg, #4ca1af 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .current-snp { text-align: center; margin-top: 10px; color: #eee; font-family: monospace; font-size: 16px; }
+        .log-container { background: rgba(0, 0, 0, 0.2); border-radius: 10px; padding: 20px; max-height: 300px; overflow-y: auto; }
+        .log-header { font-weight: bold; margin-bottom: 10px; }
+        .log-entry { font-family: monospace; font-size: 14px; color: #ddd; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .log-entry:last-child { border-bottom: none; }
+        .info-box { background: rgba(0,0,0,0.2); border-left: 4px solid #4ca1af; padding: 20px; margin-top: 30px; border-radius: 5px; }
+        .info-box h3 { color: #4ca1af; margin-bottom: 10px; }
+        .info-box p { color: #ccc; line-height: 1.6; }
+        .info-box code { background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        function App() {
+            const [status, setStatus] = useState({
+                count: 0,
+                current: 'N/A',
+                total: 110000,
+                logs: []
+            });
+            const [error, setError] = useState(null);
+
+            const fetchStatus = () => {
+                fetch('/status')
+                    .then(res => {
+                        if (!res.ok) throw new Error('Network response was not ok');
+                        return res.json();
+                    })
+                    .then(data => setStatus(data))
+                    .catch(err => setError(err.message));
+            };
+
+            useEffect(() => {
+                fetchStatus(); // Initial fetch
+                const interval = setInterval(fetchStatus, 5000); // Poll every 5 seconds
+                return () => clearInterval(interval); // Cleanup on unmount
+            }, []);
+            
+            const progress = (status.count / status.total) * 100;
+            const eta = status.count > 0 ? Math.round((status.total - status.count) * 3 / 3600) : 'N/A';
+
+            if (error) {
+                return <div className="container"><h2>Error</h2><p>{error}</p></div>;
+            }
+            
+            return (
+                <div className="container">
+                    <h1>🧬 SNPedia Scraper Dashboard</h1>
+                    <p className="subtitle">A read-only dashboard monitoring the scraper's progress.</p>
+                    
+                    <div className="stats">
+                        <div className="stat-box">
+                            <div className="stat-value">{status.count.toLocaleString()}</div>
+                            <div className="stat-label">SNPs Scraped</div>
+                        </div>
+                        <div className="stat-box">
+                            <div className="stat-value">{progress.toFixed(2)}%</div>
+                            <div className="stat-label">Progress</div>
+                        </div>
+                        <div className="stat-box">
+                            <div className="stat-value">{eta}h</div>
+                            <div className="stat-label">Est. Time Remaining</div>
+                        </div>
+                    </div>
+                    
+                    <div className="progress-container">
+                        <div className="progress-bar">
+                            <div className="progress-fill" style={{ width: `${progress}%` }}>
+                                {progress > 5 && `${progress.toFixed(2)}%`}
+                            </div>
+                        </div>
+                        {status.current && (
+                            <div className="current-snp">
+                                Last Scraped: {status.current}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="info-box">
+                        <h3>ℹ️ How to Use</h3>
+                        <p>
+                            This is a **read-only dashboard**. To start scraping, run the following command in a separate terminal:
+                        </p>
+                        <p><code>python3 src/snpedia_scraper.py</code></p>
+                        <p>This page will automatically update every 5 seconds to show the latest progress.</p>
+                    </div>
+                    
+                    <div className="log-container">
+                        <div className="log-header">Recent Activity (Last 10 Scraped)</div>
+                        {status.logs.map((log, index) => (
+                            <div key={index} className="log-entry">
+                                [{log.time}] {log.message}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+        
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
