@@ -1,4 +1,5 @@
 # SNPedia Scraper
+<img width="1920" height="868" alt="image" src="https://github.com/user-attachments/assets/dce27e60-84d8-4aba-81cd-98209d6f663b" />
 
 A comprehensive tool for scraping genetic variant data from [SNPedia.com](https://www.snpedia.com), with multiple user interfaces and robust resume capabilities.
 
