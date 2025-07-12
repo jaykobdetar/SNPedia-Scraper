@@ -9,7 +9,7 @@ This project is intended for educational and research purposes. All contributors
 - Respect SNPedia's terms of service and rate limits
 - Follow ethical scraping practices
 - Ensure contributions maintain the 3-second delay between requests
-- Not modify the scraper to bypass or ignore robots.txt
+- Not modify the scraper to violate robots.txt
 
 ### Welcome Contributions
 - Bug fixes
