@@ -111,7 +111,7 @@ class SNPediaScraper:
                         if self.status_callback: self.status_callback(snp_count, self.total_snps, f"Skipped {rsid}")
                         continue
 
-                    page_url = f"https://www.snpedia.com/index.php/{rsid}?action=raw"
+                     page_url = f"https://bots.snpedia.com/index.php/{rsid}?action=raw"
                     content_response = requests.get(page_url)
                     content_response.raise_for_status()
                     content = content_response.text
