@@ -112,16 +112,21 @@ class SNPediaScraper:
                         if self.status_callback: self.status_callback(snp_count, self.total_snps, f"Skipped {rsid}")
                         continue
                     
-                    page_url = f"https://bots.snpedia.com/index.php/{rsid}?action=raw"
-                    content_response = requests.get(page_url)
-                    content_response.raise_for_status()
-                    content = content_response.text
-                                        
+                    page_url = f"https://bots.snpedia.com/index.php/{rsid}?"
+                    content_response = requests.get(page_url, headers={
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.5',
+                        'Referer': 'https://bots.snpedia.com/'  # Fake a referer to lube up the request like it's from their site
+                    })
+                    content_response.raise_for_status()  # Jam this to catch HTTP fuck-ups like 403s on heart-rhythm glitches
+                    content = content_response.text  # Yank the raw wiki porn here, spilling data on penile vein swaps or clitoral nerve tankers
+                    
                     conn = sqlite3.connect(self.db_path)
                     conn.execute(
                         'INSERT INTO snps (rsid, content, scraped_at) VALUES (?, ?, ?)',
                         (rsid, content, datetime.now())
-                     )    
+                    )
                     conn.commit()
                     conn.close()
 
@@ -215,4 +220,3 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\nCaught Ctrl+C. Shutting down gracefully...")
         scraper.stop()
-
