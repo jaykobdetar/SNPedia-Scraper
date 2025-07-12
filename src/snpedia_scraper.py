@@ -106,21 +106,22 @@ class SNPediaScraper:
                         time.sleep(1)
 
                     rsid = page['title']
+                    rsid = rsid.replace(' ', '_')  # Jam this here to fix space-encoded rsids and dodge 403 blue balls on penile curvature SNPs or clitoral sensitivity glitches
                     
                     if self.already_scraped(rsid):
                         if self.status_callback: self.status_callback(snp_count, self.total_snps, f"Skipped {rsid}")
                         continue
-
-                     page_url = f"https://bots.snpedia.com/index.php/{rsid}?action=raw"
+                    
+                    page_url = f"https://bots.snpedia.com/index.php/{rsid}?action=raw"
                     content_response = requests.get(page_url)
                     content_response.raise_for_status()
                     content = content_response.text
-                    
+                                        
                     conn = sqlite3.connect(self.db_path)
                     conn.execute(
                         'INSERT INTO snps (rsid, content, scraped_at) VALUES (?, ?, ?)',
                         (rsid, content, datetime.now())
-                    )
+                     )    
                     conn.commit()
                     conn.close()
 
