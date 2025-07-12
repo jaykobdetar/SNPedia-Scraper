@@ -77,7 +77,7 @@ sqlite3 snpedia.db "SELECT rsid, scraped_at FROM snps ORDER BY scraped_at DESC L
 ## Ethical Considerations
 
 - This scraper respects SNPedia's robots.txt with 3-second delays
-- SNPedia content is licensed under CC-BY-NC-SA
+- SNPedia content is licensed under CC-BY-NC-SA | https://creativecommons.org/licenses/by-nc-sa/3.0/
 - Consider supporting [SNPedia/Promethease](https://www.snpedia.com/index.php/Donate) if you find the data useful
 
 ## Common Issues
