@@ -1,15 +1,17 @@
 # SNPedia Scraper
-<img width="1920" height="868" alt="image" src="https://github.com/user-attachments/assets/dce27e60-84d8-4aba-81cd-98209d6f663b" />
+<img width="1920" height="868" alt="image" src="https://github.com/user-attachments/assets/52523283-acf3-4075-83f1-b5b8f0b9c2a0" />
 
-A comprehensive tool for scraping genetic variant data from [SNPedia.com](https://www.snpedia.com), with multiple user interfaces and robust resume capabilities.
+
+A comprehensive tool for scraping genetic variant data from [SNPedia.com](https://www.snpedia.com), featuring a command-line interface, a web dashboard, and robust resume capabilities.
 
 ## Features
 
-- **Multiple Interfaces**: Command-line, GUI, and web-based interfaces
-- **Resume Capability**: Automatically saves progress every 10 SNPs
-- **Respectful Scraping**: 3-second delays between requests to honor robots.txt
-- **SQLite Storage**: Efficient local database storage
-- **Progress Monitoring**: Real-time progress tracking and logging
+- **Command-line Interface**: Fast, resume-capable CLI for long-running scraping tasks.
+- **Web Dashboard**: Real-time, read-only dashboard to monitor progress in your browser.
+- **Resume Capability**: Automatically saves progress every 10 SNPs.
+- **Respectful Scraping**: 3-second delays between requests to honor robots.txt.
+- **SQLite Storage**: Efficient local database storage.
+- **Progress Monitoring**: Real-time progress tracking and logging.
 
 ## Quick Start
 
@@ -35,17 +37,12 @@ A comprehensive tool for scraping genetic variant data from [SNPedia.com](https:
 
 #### Command Line Interface
 ```bash
-python src/snpedia_scraper.py
+python3 src/snpedia_scraper.py
 ```
 
-#### GUI Application
+#### Web Dashboard
 ```bash
-python src/gui.py
-```
-
-#### Web Interface
-```bash
-python backend.py
+python3 dashboard.py
 ```
 Then open http://localhost:5000 in your browser.
 
@@ -65,12 +62,6 @@ sqlite3 snpedia.db "SELECT COUNT(*) FROM snps;"
 sqlite3 snpedia.db "SELECT rsid, scraped_at FROM snps ORDER BY scraped_at DESC LIMIT 10;"
 ```
 
-## Building Distribution
-
-### Linux AppImage
-```bash
-./build_appimage.sh
-```
 
 ## Database Schema
 
