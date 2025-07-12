@@ -106,22 +106,31 @@ class SNPediaScraper:
                         time.sleep(1)
 
                     rsid = page['title']
-                    rsid = rsid.replace(' ', '_')  # Jam this here to fix space-encoded rsids and dodge 403 blue balls on penile curvature SNPs or clitoral sensitivity glitches
+                    rsid = rsid.replace(' ', '_')  # Fix space-encoded rsids to avoid URL issues
                     
                     if self.already_scraped(rsid):
                         if self.status_callback: self.status_callback(snp_count, self.total_snps, f"Skipped {rsid}")
                         continue
                     
-                    page_url = f"https://bots.snpedia.com/index.php/{rsid}?"
-                    content_response = requests.get(page_url, headers={
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                        'Accept-Language': 'en-US,en;q=0.5',
-                        'Referer': 'https://bots.snpedia.com/'  # Fake a referer to lube up the request like it's from their site
+                    # Use API for raw content - compliant and gets clean wiki markup
+                    params_content = {
+                        'action': 'query',
+                        'prop': 'revisions',
+                        'rvprop': 'content',
+                        'format': 'json',
+                        'titles': rsid
+                    }
+                    content_response = requests.get(self.api_url, params=params_content, headers={
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
                     })
-                    content_response.raise_for_status()  # Jam this to catch HTTP fuck-ups like 403s on heart-rhythm glitches
-                    content = content_response.text  # Yank the raw wiki porn here, spilling data on penile vein swaps or clitoral nerve tankers
-                    
+                    content_response.raise_for_status()
+                    data_content = content_response.json()
+                    page_id = list(data_content['query']['pages'].keys())[0]
+                    if page_id == '-1':  # Page doesn't exist
+                        if self.log_callback: self.log_callback(f"Page not found for {rsid}. Skipping.")
+                        continue
+                    content = data_content['query']['pages'][page_id]['revisions'][0]['*']
+                                        
                     conn = sqlite3.connect(self.db_path)
                     conn.execute(
                         'INSERT INTO snps (rsid, content, scraped_at) VALUES (?, ?, ?)',
@@ -220,3 +229,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\nCaught Ctrl+C. Shutting down gracefully...")
         scraper.stop()
+
