@@ -112,39 +112,72 @@ class SNPediaScraper:
                         if self.status_callback: self.status_callback(snp_count, self.total_snps, f"Skipped {rsid}")
                         continue
                     
-                    # Use API for raw content - compliant and gets clean wiki markup
-                    params_content = {
-                        'action': 'query',
-                        'prop': 'revisions',
-                        'rvprop': 'content',
-                        'format': 'json',
-                        'titles': rsid
-                    }
-                    content_response = requests.get(self.api_url, params=params_content, headers={
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                    })
-                    content_response.raise_for_status()
-                    data_content = content_response.json()
-                    page_id = list(data_content['query']['pages'].keys())[0]
-                    if page_id == '-1':  # Page doesn't exist
-                        if self.log_callback: self.log_callback(f"Page not found for {rsid}. Skipping.")
-                        continue
-                    content = data_content['query']['pages'][page_id]['revisions'][0]['*']
-                                        
-                    conn = sqlite3.connect(self.db_path)
-                    conn.execute(
-                        'INSERT INTO snps (rsid, content, scraped_at) VALUES (?, ?, ?)',
-                        (rsid, content, datetime.now())
-                    )
-                    conn.commit()
-                    conn.close()
+                    # Try to fetch the content
+                    try:
+                        # Use API for raw content - compliant and gets clean wiki markup
+                        params_content = {
+                            'action': 'query',
+                            'prop': 'revisions',
+                            'rvprop': 'content',
+                            'format': 'json',
+                            'titles': rsid
+                        }
+                        content_response = requests.get(self.api_url, params=params_content, headers={
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                        })
+                        
+                        # Try to get JSON data even if status code indicates error
+                        try:
+                            data_content = content_response.json()
+                            
+                            # Check if we got valid data
+                            if 'query' in data_content and 'pages' in data_content['query']:
+                                page_id = list(data_content['query']['pages'].keys())[0]
+                                if page_id == '-1':  # Page doesn't exist
+                                    if self.log_callback: self.log_callback(f"Page not found for {rsid}. Skipping.")
+                                    continue
+                                    
+                                content = data_content['query']['pages'][page_id]['revisions'][0]['*']
+                                
+                                # Save the content
+                                conn = sqlite3.connect(self.db_path)
+                                conn.execute(
+                                    'INSERT INTO snps (rsid, content, scraped_at) VALUES (?, ?, ?)',
+                                    (rsid, content, datetime.now())
+                                )
+                                conn.commit()
+                                conn.close()
 
-                    snp_count += 1
-                    if self.status_callback: self.status_callback(snp_count, self.total_snps, rsid)
-                    if self.log_callback and snp_count % 10 == 0: self.log_callback(f"Scraped {snp_count} SNPs. Latest: {rsid}")
+                                snp_count += 1
+                                if self.status_callback: self.status_callback(snp_count, self.total_snps, rsid)
+                                if self.log_callback and snp_count % 10 == 0: self.log_callback(f"Scraped {snp_count} SNPs. Latest: {rsid}")
 
-                    if snp_count % 10 == 0:
-                        self.save_progress('snp_count', str(snp_count))
+                                if snp_count % 10 == 0:
+                                    self.save_progress('snp_count', str(snp_count))
+                            else:
+                                # JSON is valid but doesn't contain expected data
+                                raise Exception("Invalid response structure")
+                                
+                        except (json.JSONDecodeError, KeyError) as e:
+                            # If we can't parse JSON or access expected keys, check status
+                            content_response.raise_for_status()
+                            raise e
+
+                    except Exception as e:
+                        # Check if we actually saved this SNP despite the error
+                        if self.already_scraped(rsid):
+                            if self.log_callback: 
+                                self.log_callback(f"Got error but {rsid} was saved successfully. Continuing...")
+                            snp_count += 1
+                            if self.status_callback: 
+                                self.status_callback(snp_count, self.total_snps, rsid)
+                            # No delay needed - it worked!
+                        else:
+                            # Real error - SNP wasn't saved
+                            if self.log_callback: 
+                                self.log_callback(f"Error fetching {rsid}: {e}. Retrying in 30 seconds...")
+                            time.sleep(30)
+                            continue  # Skip the normal delay and retry immediately
 
                     time.sleep(3)
 
@@ -229,4 +262,3 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\nCaught Ctrl+C. Shutting down gracefully...")
         scraper.stop()
-
