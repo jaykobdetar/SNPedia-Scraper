@@ -141,7 +141,7 @@ class SNPediaScraper:
                             'titles': rsid
                         }
                         content_response = requests.get(self.api_url, params=params_content, headers={
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                            ''User-Agent': 'SNPediaScraper/1.0 (Educational Research; https://github.com/jaykobdetar/SNPedia-Scraper; simyc4982@email.com) Mozilla/5.0 compatible'
                         })
                         
                         # Try to get JSON data even if status code indicates error
