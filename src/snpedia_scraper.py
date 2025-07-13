@@ -12,6 +12,7 @@ import threading
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 # Define the absolute path for the database
 DEFAULT_DB_PATH = os.path.join(PROJECT_ROOT, 'snpedia.db')
+ERROR_LOG_PATH = os.path.join(PROJECT_ROOT, 'scraper_errors.log')
 
 class SNPediaScraper:
     def __init__(self, db_path=DEFAULT_DB_PATH, status_callback=None, log_callback=None):
@@ -29,6 +30,23 @@ class SNPediaScraper:
         self._thread = None
 
         self._create_tables()
+        self._init_error_log()
+
+    def _init_error_log(self):
+        """Initialize or append to error log file."""
+        if not os.path.exists(ERROR_LOG_PATH):
+            with open(ERROR_LOG_PATH, 'w') as f:
+                f.write("# SNPedia Scraper Error Log\n")
+                f.write(f"# Started: {datetime.now()}\n")
+                f.write("# Format: timestamp | rsid | error_type | error_message\n")
+                f.write("-" * 80 + "\n")
+    
+    def _log_error(self, rsid, error_type, error_message):
+        """Log an error to the error file."""
+        with open(ERROR_LOG_PATH, 'a') as f:
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            f.write(f"{timestamp} | {rsid} | {error_type} | {error_message}\n")
+            f.flush()  # Ensure it's written immediately
 
     def _create_tables(self):
         conn = sqlite3.connect(self.db_path)
@@ -176,6 +194,13 @@ class SNPediaScraper:
                             # Real error - SNP wasn't saved
                             if self.log_callback: 
                                 self.log_callback(f"Error fetching {rsid}: {e}. Retrying in 30 seconds...")
+                            
+                            # Log the error for later recovery
+                            if "502" in str(e):
+                                self._log_error(rsid, "502_ERROR", str(e))
+                            else:
+                                self._log_error(rsid, "OTHER_ERROR", str(e))
+                            
                             time.sleep(30)
                             continue  # Skip the normal delay and retry immediately
 
