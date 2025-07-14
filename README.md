@@ -1,23 +1,36 @@
+<img width="1903" height="842" alt="image" src="https://github.com/user-attachments/assets/2140e1c0-0d03-4f26-8fc0-fd8b291bc6c1" />
 # SNPedia Scraper
-<img width="1920" height="868" alt="image" src="https://github.com/user-attachments/assets/52523283-acf3-4075-83f1-b5b8f0b9c2a0" />
 
-
-A comprehensive tool for scraping genetic variant data from [SNPedia.com](https://www.snpedia.com), featuring a command-line interface, a web dashboard, and robust resume capabilities.
+A comprehensive tool for scraping genetic variant data from [SNPedia.com](https://www.snpedia.com), featuring a powerful web dashboard with integrated backup management, real-time monitoring, and robust error recovery.
 
 ## Features
 
-- **Command-line Interface**: Fast, resume-capable CLI for long-running scraping tasks.
-- **Web Dashboard**: Real-time, read-only dashboard to monitor progress in your browser.
-- **Resume Capability**: Automatically saves progress every 10 SNPs.
-- **Respectful Scraping**: 3-second delays between requests to honor robots.txt.
-- **SQLite Storage**: Efficient local database storage.
-- **Progress Monitoring**: Real-time progress tracking and logging.
+### Core Functionality
+- **Resume-capable scraping**: Automatically saves progress every 10 SNPs
+- **Respectful rate limiting**: 3-second delays between requests (respects robots.txt)
+- **Error recovery**: Logs failed SNPs for later recovery
+- **SQLite storage**: Efficient local database with ~1-2GB final size
+
+### Web Dashboard
+- **Real-time monitoring**: Live progress updates every 3 seconds
+- **Integrated backup system**: No separate scripts needed
+- **Debug information**: Data quality checks and performance metrics
+- **Status indicators**: Visual feedback for scraper and backup status
+
+### Backup Management
+- **Multiple strategies**:
+  - Rolling: Keep last N backups
+  - Progressive: Smart intervals (1k/5k/10k SNPs)
+  - Hourly: Time-based backups
+  - All: Keep everything (warning: requires significant disk space)
+- **Automatic monitoring**: Runs in background with configurable intervals
+- **Manual controls**: Create, delete, and manage backups from the UI
 
 ## Quick Start
 
 ### Prerequisites
-
 - Python 3.6+
+- ~2-3GB free disk space
 - Virtual environment recommended (required on Ubuntu 24.04+ due to PEP 668)
 
 ### Installation
@@ -35,33 +48,71 @@ A comprehensive tool for scraping genetic variant data from [SNPedia.com](https:
 
 ### Usage
 
-#### Command Line Interface
+#### 1. Start the Dashboard
 ```bash
-python3 src/snpedia_scraper.py
+python dashboard.py
+```
+Open http://localhost:5000 in your browser
+
+For verbose logging:
+```bash
+python dashboard.py --verbose
 ```
 
-#### Web Dashboard
+#### 2. Start the Scraper (in a separate terminal)
 ```bash
-python3 dashboard.py
+python src/snpedia_scraper.py
 ```
-Then open http://localhost:5000 in your browser.
+
+The dashboard will automatically:
+- Monitor scraping progress
+- Handle backups based on your configuration
+- Show real-time statistics
+- Start the backup monitor if configured
+
+## Dashboard Features
+
+### Main View
+- SNP count and progress percentage
+- Current scraping rate (SNPs/hour)
+- Estimated time remaining
+- Recent activity log (last 10 SNPs)
+- Visual status indicators (active/paused/stopped)
+
+### Debug Information
+Click "Show Debug Info" to see:
+- SNP type breakdown (Rs, I, Other)
+- Data quality metrics
+- Storage statistics and projections
+- Timing analysis with stall detection
+
+### Backup Management
+- Configure backup strategy and intervals
+- Start/stop automatic backup monitor
+- Create manual backups instantly
+- Delete individual backups
+- View backup statistics (count, total size, average size)
 
 ## Performance
 
+- **Scraping rate**: ~760-800 SNPs/hour (varies by connection)
 - **Full scrape time**: ~90-100 hours for ~110,000 SNPs
 - **Database size**: ~1-2GB when complete
-- **Rate limit**: 3 seconds per request (respects robots.txt)
+- **Average time per SNP**: ~4.7 seconds (3s delay + processing)
 
-## Monitoring Progress
+## Error Recovery
+
+If SNPs fail to scrape, they're automatically logged to `scraper_errors.log`. To recover:
 
 ```bash
-# Check current progress
-sqlite3 snpedia.db "SELECT COUNT(*) FROM snps;"
-
-# View recent entries
-sqlite3 snpedia.db "SELECT rsid, scraped_at FROM snps ORDER BY scraped_at DESC LIMIT 10;"
+python error_recover.py
 ```
 
+This will:
+1. Parse the error log
+2. Check which SNPs are missing from database
+3. Attempt to recover them
+4. Report results and save any failures
 
 ## Database Schema
 
@@ -71,29 +122,88 @@ sqlite3 snpedia.db "SELECT rsid, scraped_at FROM snps ORDER BY scraped_at DESC L
 - `scraped_at` (TIMESTAMP): When the SNP was scraped
 
 ### `progress` table
-- `key` (TEXT PRIMARY KEY): Progress key
+- `key` (TEXT PRIMARY KEY): Progress key (cmcontinue, snp_count)
 - `value` (TEXT): Progress value for resumption
 
-## Ethical Considerations
+## File Structure
 
-- This scraper respects SNPedia's robots.txt with 3-second delays
-- SNPedia content is licensed under CC-BY-NC-SA | https://creativecommons.org/licenses/by-nc-sa/3.0/
-- Consider supporting [SNPedia/Promethease](https://www.snpedia.com/index.php/Donate) if you find the data useful
+```
+SNPedia-Scraper/
+├── src/
+│   └── snpedia_scraper.py    # Main scraper script
+├── dashboard.py               # Web dashboard with backup manager
+├── index.html                 # Dashboard frontend
+├── error_recover.py           # Error recovery tool
+├── requirements.txt           # Python dependencies
+├── snpedia.db                # SQLite database (created on first run)
+├── backup_config.json         # Backup settings (created by dashboard)
+├── scraper_errors.log         # Error log (created when errors occur)
+└── backups/                   # Backup directory (created when needed)
+```
+
+## Configuration Files
+
+- `backup_config.json`: Stores backup strategy settings
+- `scraper_errors.log`: Logs failed SNPs with error details
+
+## Tips for Long-Running Scrapes
+
+1. **Use `screen` or `tmux`** for the scraper process to prevent disconnection
+2. **Configure backups** before starting (Progressive strategy recommended)
+3. **Monitor via dashboard** - accessible from any browser on the machine
+4. **Check disk space** - ensure adequate space for database and backups
+5. **Network stability** - Use wired connection if possible for 90+ hour scrape
+
+## Data Information
+
+### SNP Types
+- **Rs SNPs**: Standard reference SNPs (majority of entries)
+- **I SNPs**: 23andMe internal identifiers (minimal wiki content)
+- **Other**: Special entries (genes, OMIM references)
+
+### Expected Data
+- ~110,000 total SNPs in SNPedia
+- Average content size: ~1KB per SNP
+- Small entries (<100 chars): Mostly 23andMe mappings
+
+## Troubleshooting
+
+- **Dashboard won't start**: Check if port 5000 is available
+- **Scraper seems stuck**: Check dashboard debug info for last update time
+- **502 errors**: SNPedia server issues - scraper will retry automatically
+- **Backup failures**: Check disk space and write permissions
+- **Can't see dashboard**: Ensure you're accessing http://localhost:5000
 
 ## Common Issues
 
-- **Long-running process**: Use `screen` or `tmux` for background execution
-- **Virtual environment**: Required on Ubuntu 24.04+ due to PEP 668
-- **Database growth**: Ensure adequate disk space (~2GB)
+- **Import errors**: Activate virtual environment before running
+- **Database locked**: Ensure only one scraper instance is running
+- **High memory usage**: Normal for large databases, close other applications
+
+## Ethical Considerations
+
+- This scraper respects SNPedia's robots.txt with mandatory 3-second delays
+- SNPedia content is licensed under CC-BY-NC-SA 3.0
+- Consider supporting [SNPedia/Promethease](https://www.snpedia.com/index.php/SNPedia:General_disclaimer) if you find the data useful
+- For research use, ensure compliance with your institution's policies
 
 ## Contributing
 
-This project is designed for personal research and education. Please ensure any contributions maintain respect for SNPedia's terms of service and rate limits.
+This project is designed for personal research and education. Please ensure any contributions maintain respect for SNPedia's terms of service and rate limits. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+
+**Important**: The scraped data remains under SNPedia's CC-BY-NC-SA 3.0 license. This means:
+- You must give appropriate credit to SNPedia
+- Non-commercial use only
+- Share-alike under the same license
 
 ## Disclaimer
 
-This tool is for educational and research purposes. Users are responsible for complying with SNPedia's terms of service and applicable laws. The scraped data retains SNPedia's CC-BY-NC-SA licensing.
+This tool is for educational and research purposes. Users are responsible for:
+- Complying with SNPedia's terms of service
+- Respecting the CC-BY-NC-SA license for scraped data
+- Following applicable laws and regulations
+- Using the data ethically and responsibly
