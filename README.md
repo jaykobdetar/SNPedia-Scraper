@@ -94,12 +94,6 @@ Click "Show Debug Info" to see:
 - Delete individual backups
 - View backup statistics (count, total size, average size)
 
-## Performance
-
-- **Scraping rate**: ~760-800 SNPs/hour (varies by connection)
-- **Full scrape time**: ~90-100 hours for ~110,000 SNPs
-- **Database size**: ~1-2GB when complete
-- **Average time per SNP**: ~4.7 seconds (3s delay + processing)
 
 ## Error Recovery
 
