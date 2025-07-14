@@ -1,4 +1,4 @@
-<img width="514" height="853" alt="image" src="https://github.com/user-attachments/assets/84b40758-1520-4705-9224-691351649da9" />
+<img width="878" height="860" alt="image" src="https://github.com/user-attachments/assets/d098aba2-12f8-447c-95d6-e49a1a5d0c1c" />
 
 # SNPedia Scraper
 
