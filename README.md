@@ -202,3 +202,4 @@ This tool is for educational and research purposes. Users are responsible for:
 - Respecting the CC-BY-NC-SA license for scraped data
 - Following applicable laws and regulations
 - Using the data ethically and responsibly
+<img width="1100" height="854" alt="image" src="https://github.com/user-attachments/assets/3e2e6951-5230-4f1a-86a4-5b782923c940" />
