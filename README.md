@@ -1,5 +1,5 @@
 <img width="878" height="860" alt="image" src="https://github.com/user-attachments/assets/d098aba2-12f8-447c-95d6-e49a1a5d0c1c" />
-
+Get the most recent scrape here: https://zenodo.org/records/16053572 or here https://mega.nz/file/inQBACgT#q9hbymmFIQmc7n0MGyP96v5KjFhGtwvReKHOXnZsRMY or the releases section of this repo.
 # SNPedia Scraper
 
 A comprehensive tool for scraping genetic variant data from [SNPedia.com](https://www.snpedia.com), featuring a powerful web dashboard with integrated backup management, real-time monitoring, and robust error recovery.
