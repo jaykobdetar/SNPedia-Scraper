@@ -10,7 +10,7 @@ A comprehensive tool for scraping genetic variant data from [SNPedia.com](https:
 - **Resume-capable scraping**: Automatically saves progress every 10 SNPs
 - **Respectful rate limiting**: 3-second delays between requests (respects robots.txt)
 - **Error recovery**: Logs failed SNPs for later recovery
-- **SQLite storage**: Efficient local database with ~1-2GB final size
+- **SQLite storage**: Efficient local database with ~160MB final size
 
 ### Web Dashboard
 - **Real-time monitoring**: Live progress updates every 3 seconds
@@ -31,7 +31,7 @@ A comprehensive tool for scraping genetic variant data from [SNPedia.com](https:
 
 ### Prerequisites
 - Python 3.6+
-- ~2-3GB free disk space
+- ~200-300MB free disk space
 - Virtual environment recommended (required on Ubuntu 24.04+ due to PEP 668)
 
 ### Installation
