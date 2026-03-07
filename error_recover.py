@@ -8,7 +8,6 @@ import requests
 import time
 from datetime import datetime
 import os
-import re
 
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(PROJECT_ROOT, 'snpedia.db')
@@ -129,15 +128,17 @@ def recover_missing_snps(missing_list):
                     
                     if page_id != '-1':  # Page exists
                         content = data['query']['pages'][page_id]['revisions'][0]['*']
-                        
+
                         # Save to database
                         conn = sqlite3.connect(DB_PATH)
-                        conn.execute(
-                            'INSERT INTO snps (rsid, content, scraped_at) VALUES (?, ?, ?)',
-                            (rsid, content, datetime.now())
-                        )
-                        conn.commit()
-                        conn.close()
+                        try:
+                            conn.execute(
+                                'INSERT OR IGNORE INTO snps (rsid, content, scraped_at) VALUES (?, ?, ?)',
+                                (rsid, content, datetime.now())
+                            )
+                            conn.commit()
+                        finally:
+                            conn.close()
                         
                         recovered += 1
                         print(f"\r[{i+1}/{len(missing_list)}] ✓ Recovered {rsid}    ")

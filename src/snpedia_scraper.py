@@ -91,6 +91,10 @@ class SNPediaScraper:
         return count, self.total_snps
 
     def _scrape_loop(self):
+        self._headers = {
+            'User-Agent': 'SNPediaScraper/1.0 (Educational Research; https://github.com/jaykobdetar/SNPedia-Scraper; simyc4982@email.com) Mozilla/5.0 compatible'
+        }
+
         params = {
             'action': 'query',
             'list': 'categorymembers',
@@ -111,25 +115,25 @@ class SNPediaScraper:
                 continue
 
             try:
-                r = requests.get(self.api_url, params=params)
+                r = requests.get(self.api_url, params=params, headers=self._headers)
                 r.raise_for_status()
                 data = r.json()
 
                 for page in data['query']['categorymembers']:
                     if not self.running:
                         break
-                    
+
                     while self.paused:
                         if not self.running: break
                         time.sleep(1)
 
                     rsid = page['title']
                     rsid = rsid.replace(' ', '_')  # Fix space-encoded rsids to avoid URL issues
-                    
+
                     if self.already_scraped(rsid):
                         if self.status_callback: self.status_callback(snp_count, self.total_snps, f"Skipped {rsid}")
                         continue
-                    
+
                     # Try to fetch the content
                     try:
                         # Use API for raw content - compliant and gets clean wiki markup
@@ -140,31 +144,31 @@ class SNPediaScraper:
                             'format': 'json',
                             'titles': rsid
                         }
-                        content_response = requests.get(self.api_url, params=params_content, headers={
-                            ''User-Agent': 'SNPediaScraper/1.0 (Educational Research; https://github.com/jaykobdetar/SNPedia-Scraper; simyc4982@email.com) Mozilla/5.0 compatible'
-                        })
-                        
+                        content_response = requests.get(self.api_url, params=params_content, headers=self._headers)
+
                         # Try to get JSON data even if status code indicates error
                         try:
                             data_content = content_response.json()
-                            
+
                             # Check if we got valid data
                             if 'query' in data_content and 'pages' in data_content['query']:
                                 page_id = list(data_content['query']['pages'].keys())[0]
                                 if page_id == '-1':  # Page doesn't exist
                                     if self.log_callback: self.log_callback(f"Page not found for {rsid}. Skipping.")
                                     continue
-                                    
+
                                 content = data_content['query']['pages'][page_id]['revisions'][0]['*']
-                                
+
                                 # Save the content
                                 conn = sqlite3.connect(self.db_path)
-                                conn.execute(
-                                    'INSERT INTO snps (rsid, content, scraped_at) VALUES (?, ?, ?)',
-                                    (rsid, content, datetime.now())
-                                )
-                                conn.commit()
-                                conn.close()
+                                try:
+                                    conn.execute(
+                                        'INSERT OR IGNORE INTO snps (rsid, content, scraped_at) VALUES (?, ?, ?)',
+                                        (rsid, content, datetime.now())
+                                    )
+                                    conn.commit()
+                                finally:
+                                    conn.close()
 
                                 snp_count += 1
                                 if self.status_callback: self.status_callback(snp_count, self.total_snps, rsid)
@@ -175,7 +179,7 @@ class SNPediaScraper:
                             else:
                                 # JSON is valid but doesn't contain expected data
                                 raise Exception("Invalid response structure")
-                                
+
                         except (json.JSONDecodeError, KeyError) as e:
                             # If we can't parse JSON or access expected keys, check status
                             content_response.raise_for_status()
@@ -184,23 +188,20 @@ class SNPediaScraper:
                     except Exception as e:
                         # Check if we actually saved this SNP despite the error
                         if self.already_scraped(rsid):
-                            if self.log_callback: 
+                            if self.log_callback:
                                 self.log_callback(f"Got error but {rsid} was saved successfully. Continuing...")
-                            snp_count += 1
-                            if self.status_callback: 
-                                self.status_callback(snp_count, self.total_snps, rsid)
-                            # No delay needed - it worked!
+                            # Don't increment snp_count — it was already counted when saved
                         else:
                             # Real error - SNP wasn't saved
-                            if self.log_callback: 
+                            if self.log_callback:
                                 self.log_callback(f"Error fetching {rsid}: {e}. Retrying in 30 seconds...")
-                            
+
                             # Log the error for later recovery
                             if "502" in str(e):
                                 self._log_error(rsid, "502_ERROR", str(e))
                             else:
                                 self._log_error(rsid, "OTHER_ERROR", str(e))
-                            
+
                             time.sleep(30)
                             continue  # Skip the normal delay and retry immediately
 
@@ -213,17 +214,15 @@ class SNPediaScraper:
                     self.running = False # End of the list
                     if self.log_callback: self.log_callback("Scraping complete: Reached end of SNP list.")
                     break
-                
+
                 time.sleep(3)
 
-            except KeyboardInterrupt:
-                self.stop()
-                print("\n\nPausing... Progress saved. Run again to resume.")
-                break
             except Exception as e:
                 if self.log_callback: self.log_callback(f"Error: {e}. Retrying in 30 seconds...")
                 time.sleep(30)
-        
+
+        # Save final progress on exit
+        self.save_progress('snp_count', str(snp_count))
         self.running = False
         if self.log_callback: self.log_callback("Scraper stopped.")
 
